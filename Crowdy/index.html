@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <title>Crowdy — mapa realista no interactiu</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    :root{ --blue:#4a90e2; --white: #ffffff; }
+    body{
+      background:var(--blue);
+      color:#fff;
+      font-family:Arial, sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:100vh;
+      margin:0;
+      text-align:center;
+    }
+    section{
+      display:none;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:16px;
+      width:100%;
+      max-width:900px;
+      padding:20px;
+    }
+    #inici{display:flex;}
+    h1{margin:0;}
+    p{line-height:1.5;}
+    button, .cta{
+      border:2px solid #fff;
+      background:transparent;
+      color:#fff;
+      padding:10px 20px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:bold;
+      transition:0.3s;
+    }
+    button:hover, .cta:hover{
+      background:#fff;
+      color:var(--blue);
+    }
+    input{
+      padding:10px;
+      border-radius:6px;
+      border:1px solid #fff;
+      background:rgba(255,255,255,0.1);
+      color:#fff;
+      width:100%;
+      max-width:300px;
+    }
+    .lang-switcher{
+      position:absolute;
+      top:16px;
+      left:16px;
+      display:flex;
+      gap:8px;
+      background:rgba(255,255,255,0.08);
+      padding:6px 10px;
+      border-radius:8px;
+      backdrop-filter:blur(6px);
+      z-index:10000;
+    }
+    .lang-switcher img{
+      width:32px;
+      height:22px;
+      cursor:pointer;
+      border-radius:4px;
+      border:1px solid rgba(255,255,255,0.6);
+      transition:transform 0.2s;
+    }
+    .lang-switcher img:hover{ transform:scale(1.08); }
+    #map{
+      height:500px;
+      width:100%;
+      border-radius:12px;
+      margin-top:20px;
+      background:var(--blue);
+      position:relative;
+      z-index:0;
+      box-shadow:0 10px 30px rgba(0,0,0,0.15);
+    }
+    .leaflet-container { background: var(--blue); }
+    #logoHome {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 50px;
+      height: auto;
+      cursor: pointer;
+      z-index: 10001;
+      border-radius:8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      background: rgba(255,255,255,0.02);
+      padding:4px;
+    }
+    @media (max-width:600px){
+      #map{ height:360px; }
+      .lang-switcher img{ width:28px; height:18px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- selector idiomes (amb bandera catalunya en base64) -->
+  <div class="lang-switcher" aria-hidden="false">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARMAAAC3CAMAAAAGjUrGAAAAHlBMVEX83QnaEhr+5AjZABrlZxXYABvyqw/94Qj83AjlahaOSkTMAAABBklEQVR4nO3dwW1CQRAFwbExBvJP2PfpM1r8VRVCH99IuzMAAAAAAG/wzTYvtrmxzRebJqVJaVKalCalSWlSmpQmpUlpUpqUJqVJaVKalJ2t5ofNbl+nTykAAAAAcAlPNrt9ue+UJqVJaVKalCalSWlSmpQmpUlpUpqUJqVJaVKalCY1d7b5ZZsH2+lTCgAAAAD/0OlR6wPZY8tuX+47pUlpUpqUJqVJaVKalCalSWlSmpQmpUlpUpqUJqVJea+gvGtRp08pAAAAAHAJpz/P+kD+fSu7fbnvlCalSWlSmpQmpUlpUpqUJqVJaVKalCalSWlSmpSdrebFZrev06cUAAAAAOCa/gDFrbrrMaBq1gAAAABJRU5ErkJggg==" alt="Català" data-lang="ca" id="flag-ca">
+    <img src="https://flagcdn.com/w20/es.png" alt="Español" data-lang="es" id="flag-es">
+    <img src="https://flagcdn.com/w20/gb.png" alt="English" data-lang="en" id="flag-en">
+  </div>
+
+  <!-- logo que torna a inici -->
+  <img id="logoHome" src="logo.png" alt="Inici">
+
+  <!-- pantalles -->
+  <section id="inici">
+    <h1 id="benvinguda">Benvingut/da a Crowdy</h1>
+    <p id="textPrincipal">
+      La massificació en destins d'interès natura / mar és un problema present en el nostre dia a dia. 
+      Nosaltres busquem una solució per a informar-te del nivell d'ocupació d'aquests llocs i així 
+      puguis gaudir d'una experiència tranquil·la i segura.
+    </p>
+    <a href="#" class="cta" id="btnAccedeix">ACCEDEIX</a>
+  </section>
+
+  <section id="registre">
+    <h1 id="registreTitol">Formulari de registre</h1>
+    <form id="registreForm">
+      <input type="text" id="inputNom" placeholder="Nom" required>
+      <input type="text" id="inputCognom" placeholder="Cognom" required>
+      <input type="email" id="inputEmail" placeholder="Correu electrònic" required>
+      <button type="submit" id="btnRegistrar">Registra't</button>
+    </form>
+  </section>
+
+  <section id="final">
+    <h1 id="finalTitol">Gràcies per registrar-te!</h1>
+    <p id="finalText">La teva informació s'ha registrat correctament.</p>
+    <p id="registreNum"></p>
+    <div id="map"></div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    /* textos */
+    const textos = {
+      ca: { benvinguda:"Benvingut/da a Crowdy", principal:"La massificació en destins d'interès natura / mar és un problema present en el nostre dia a dia. Nosaltres busquem una solució per a informar-te del nivell d'ocupació d'aquests llocs i així puguis gaudir d'una experiència tranquil·la i segura.", boto:"ACCEDEIX", registreTitol:"Formulari de registre", nom:"Nom", cognom:"Cognom", email:"Correu electrònic", nova:"Registra't", finalTitol:"Gràcies per registrar-te!", finalText:"La teva informació s'ha registrat correctament." },
+      es: { benvinguda:"Bienvenido/a a Crowdy", principal:"La masificación en destinos de interés natural / mar es un problema presente en nuestro día a día. Nosotros buscamos una solución para informarte del nivel de ocupación de estos lugares y así puedas disfrutar de una experiencia tranquila y segura.", boto:"ACCEDE", registreTitol:"Formulario de registro", nom:"Nombre", cognom:"Apellido", email:"Correo electrónico", nova:"Regístrate", finalTitol:"¡Gracias por registrarte!", finalText:"Tu información se ha registrado correctamente." },
+      en: { benvinguda:"Welcome to Crowdy", principal:"Overcrowding in nature / sea destinations is a problem present in our daily lives. We seek a solution to inform you about the occupancy level of these places so you can enjoy a calm and safe experience.", boto:"ACCESS", registreTitol:"Registration form", nom:"First name", cognom:"Last name", email:"Email address", nova:"Register", finalTitol:"Thank you for registering!", finalText:"Your information has been successfully registered." }
+    };
+
+    let registreCount = localStorage.getItem("registreCount")
+      ? parseInt(localStorage.getItem("registreCount"))
+      : 0;
+
+    const inici = document.getElementById("inici");
+    const registre = document.getElementById("registre");
+    const final = document.getElementById("final");
+
+    document.getElementById("btnAccedeix").addEventListener("click", e=>{
+      e.preventDefault();
+      inici.style.display="none";
+      registre.style.display="flex";
+    });
+
+    document.getElementById("logoHome").addEventListener("click", ()=>{
+      inici.style.display="flex";
+      registre.style.display="none";
+      final.style.display="none";
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+
+    function aplicarIdioma(lang){
+      document.getElementById("benvinguda").textContent = textos[lang].benvinguda;
+      document.getElementById("textPrincipal").textContent = textos[lang].principal;
+      document.getElementById("btnAccedeix").textContent = textos[lang].boto;
+      document.getElementById("registreTitol").textContent = textos[lang].registreTitol;
+      document.getElementById("inputNom").placeholder = textos[lang].nom;
+      document.getElementById("inputCognom").placeholder = textos[lang].cognom;
+      document.getElementById("inputEmail").placeholder = textos[lang].email;
+      document.getElementById("btnRegistrar").textContent = textos[lang].nova;
+      document.getElementById("finalTitol").textContent = textos[lang].finalTitol;
+      document.getElementById("finalText").textContent = textos[lang].finalText;
+      document.documentElement.lang = lang;
+    }
+
+    document.querySelectorAll('.lang-switcher img').forEach(img=>{
+      img.addEventListener('click', ()=>{
+        const lang = img.getAttribute('data-lang');
+        aplicarIdioma(lang);
+        localStorage.setItem("lang", lang);
+      });
+    });
+    const savedLang = localStorage.getItem("lang") || "ca";
+    aplicarIdioma(savedLang);
+
+    /* submit formulari -> mostra mapa */
+    document.getElementById("registreForm").addEventListener("submit", e=>{
+      e.preventDefault();
+      registreCount++;
+      localStorage.setItem("registreCount", registreCount);
+
+      registre.style.display="none";
+      final.style.display="flex";
+      document.getElementById("registreNum").textContent =
+        "Número de registre: " + registreCount;
+
+      /* ---------- INICIALITZEM EL MAPA (NO INTERACTIU) ---------- */
+      const map = L.map('map', {
+        zoomControl: false,
+        attributionControl: false,
+        dragging:false,
+        scrollWheelZoom:false,
+        doubleClickZoom:false,
+        touchZoom:false,
+        boxZoom:false,
+        tap:false
+      }).setView([40.2,-3.7], 6);
+
+      // Afegeixo un tile layer realista (OSM): encara que existeixen tessel·les,
+      // hem desactivat les interaccions perquè el mapa no sigui funcional.
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        detectRetina: false,
+        attribution: ''
+      }).addTo(map);
+
+      // Forcem redimensionament perquè Leaflet en contenidors ocults calcule bé
+      setTimeout(()=>{ map.invalidateSize(); }, 60);
+
+      /* ---------- CARREGAR AUTONOMIES (línia blanca) ---------- */
+      // Font: martgnz/es-atlas (autonomous_regions). :contentReference[oaicite:3]{index=3}
+      fetch('https://raw.githubusercontent.com/martgnz/es-atlas/master/es/autonomous_regions.json')
+      .then(r=>r.json())
+      .then(ccaa=>{
+        L.geoJSON(ccaa, {
+          style: { color: '#ffffff', weight: 1.8, fill:false },
+          interactive:false
+        }).addTo(map);
+      }).catch(err=>{
+        console.warn('No s\'ha pogut carregar el GeoJSON de comunitats:', err);
+      });
+
+      /* ---------- CARREGAR PROVINCIES (nivell per assignar colors reals) ---------- */
+      // Font: codeforgermany/click_that_hood - spain-provinces.geojson. :contentReference[oaicite:4]{index=4}
+      fetch('https://raw.githubusercontent.com/codeforgermany/click_that_hood/master/public/data/spain-provinces.geojson')
+      .then(r=>r.json())
+      .then(provs=>{
+        // Mapatge heurístic: assigno color d'ocupació a províncies (aproximació).
+        // Els noms a la llista de 35 zones s'han relacionat amb aquestes províncies/agrupacions:
+        const ocupadoAlta = new Set([
+          'Barcelona','Málaga','Alicante','Valencia','Balearic Islands','Tenerife','Las Palmas','Illes Balears','Santa Cruz de Tenerife'
+        ]);
+        const ocupadoModerado = new Set([
+          'Pontevedra','A Coruña','Huelva','Cádiz','Cantabria','Lugo','Ourense','La Rioja','Asturias','Zaragoza','Navarra'
+        ]);
+        const ocupadoBaja = new Set([
+          'Lleida','Huesca','Teruel','Soria','Segovia','Ávila','Cuenca','Cáceres','Badajoz','Zamora','Palencia','Burgos'
+        ]);
+
+        // Normalize function for matching province names in different languages/properties
+        function provinceName(feat){
+          return (feat.properties && (feat.properties.name || feat.properties.NAME || feat.properties.prov_name || feat.properties.ADMIN)) || '';
+        }
+
+        L.geoJSON(provs, {
+          style:function(feat){
+            const name = provinceName(feat).toString();
+            // matching by substring (cover different property names)
+            const nm = name.toLowerCase();
+            let color = '#00ff00'; // default verd baixa ocupació
+            // alta
+            for(const a of ocupadoAlta){
+              if(nm.includes(a.toString().toLowerCase())) { color='#ff0000'; break; }
+            }
+            // moderada (if not already alta)
+            if(color === '#00ff00'){
+              for(const m of ocupadoModerado){
+                if(nm.includes(m.toString().toLowerCase())) { color='#ffff00'; break; }
+              }
+            }
+            // baixa remains green
+            return { color: color, weight: 0.8, fillColor: color, fillOpacity: 0.45, interactive:false };
+          }
+        }).addTo(map);
+
+        // Afegim una capa amb línies blanques per sobre (per fer els límits més visibles)
+        L.geoJSON(provs, {
+          style:{ color:'#ffffff', weight:0.9, fill:false },
+          interactive:false
+        }).addTo(map);
+      }).catch(err=>{
+        console.warn('No s\'ha pogut carregar el GeoJSON de províncies:', err);
+      });
+
+      /* ---------- NOTES I EXTENSIONS (opcional) ----------
+        - Per polígon EXACTE de parcs naturals, platges concretes o àrees Natura2000:
+          pots afegir aquí un fetch amb el GeoJSON de MITECO o EEA (Natura2000). Exemple (MITECO ofereix GeoJSON):
+          fetch('URL_geojson_miteco_natura2000.geojson').then(...).then(data=>L.geoJSON(data,...).addTo(map));
+
+        - He assignat colors a nivell de província com a approximació per les 35 zones que vas demanar.
+          Si vols que alguna zona concreta tingui un color diferent (ex: Delta de l'Ebre verd en comptes de groc),
+          puc afegir un GeoJSON puntual o un polígon manual per sobre d'aquella àrea (molt precís si subministres el GeoJSON).
+
+        - Si vols que substitueixi el tileLayer OSM per un mapa base estilitzat (per exemple, Stamen Toner o Carto),
+          ho faig fent servir l'URL corresponent; això canviarà estètica però mantindrà la realitat geogràfica.
+      ------------------------------------------------------ */
+
+    }); // fi del submit
+  </script>
+</body>
+</html>
